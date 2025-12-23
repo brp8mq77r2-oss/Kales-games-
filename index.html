@@ -1,25 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Games</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Games</title>
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #121212;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+#menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+button {
+    width: 200px;
+    padding: 15px;
+    margin: 10px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: #444;
+    color: white;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+</style>
 </head>
 
-<body style="margin:0; background:#121212; color:white; font-family:Arial; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh">
+<body>
+<div id="menu">
+    <h1>🎮 Games</h1>
 
-<h1>🎮 Games</h1>
-<button onclick="location.href='flappy.html'" style="padding:15px; font-size:18px;">
-Play Flappy
-</button>
-<button onclick="location.href='flappy.html'">
-  Flappy Bird
-</button>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-}
-</script>
+    <button onclick="location.href='flappy.html'">
+        Flappy
+    </button>
 
+    <button onclick="location.href='snake.html'">
+        Snake
+    </button>
+</div>
 </body>
 </html>
