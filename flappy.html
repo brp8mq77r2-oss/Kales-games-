@@ -11,3 +11,248 @@
 
 </body>
 </html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Flappy Bird</title>
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #121212;
+    color: white;
+    font-family: Arial, sans-serif;
+    height: 100%;
+    overflow: hidden;
+}
+
+#container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
+
+canvas {
+    background: linear-gradient(#4ec0ca, #a0e4f1);
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+#ui {
+    margin-top: 6px;
+    text-align: center;
+}
+
+input, button {
+    padding: 6px;
+    margin: 4px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: none;
+}
+
+button {
+    background: #444;
+    color: white;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+#score {
+    font-size: 18px;
+    margin-top: 6px;
+}
+
+#leaderboard {
+    font-size: 13px;
+    margin-top: 6px;
+    opacity: 0.9;
+}
+</style>
+</head>
+
+<body>
+<div id="container">
+
+    <canvas id="game" width="320" height="480"></canvas>
+
+    <div id="ui">
+        <input id="playerName" placeholder="Enter name" maxlength="12">
+        <br>
+        <button onclick="startGame()">Start</button>
+        <button onclick="restartGame()">Restart</button>
+        <div id="score">Score: 0</div>
+        <div id="leaderboard"></div>
+        <div style="font-size:11px;opacity:0.7;">Tap / Click / Space to flap</div>
+    </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let W = canvas.width;
+let H = canvas.height;
+
+/* GAME STATE */
+let bird, pipes, score;
+let gravity = 0.5;
+let flapPower = -8;
+let pipeGap = 130;
+let pipeSpeed = 2;
+let running = false;
+let exploding = false;
+let explosionFrame = 0;
+
+/* LEADERBOARD */
+let leaderboard = JSON.parse(localStorage.getItem("flappyTop3")) || [];
+
+/* RESET */
+function resetGame() {
+    bird = { x: 80, y: H/2, vy: 0, r: 12 };
+    pipes = [];
+    score = 0;
+    exploding = false;
+    explosionFrame = 0;
+    document.getElementById("score").textContent = "Score: 0";
+    spawnPipe();
+}
+
+/* START */
+function startGame() {
+    if (!document.getElementById("playerName").value.trim()) {
+        alert("Enter a name first");
+        return;
+    }
+    resetGame();
+    running = true;
+}
+
+/* RESTART */
+function restartGame() {
+    running = false;
+    resetGame();
+}
+
+/* INPUT */
+function flap() {
+    if (!running || exploding) return;
+    bird.vy = flapPower;
+}
+
+document.addEventListener("keydown", e => {
+    if (e.code === "Space") flap();
+});
+canvas.addEventListener("mousedown", flap);
+canvas.addEventListener("touchstart", flap);
+
+/* PIPES */
+function spawnPipe() {
+    let top = Math.random() * (H - pipeGap - 120) + 40;
+    pipes.push({ x: W, top });
+}
+
+/* MAIN LOOP */
+function loop() {
+    requestAnimationFrame(loop);
+    ctx.clearRect(0, 0, W, H);
+
+    if (!running && !exploding) return;
+
+    /* EXPLOSION ANIMATION */
+    if (exploding) {
+        explosionFrame++;
+        ctx.fillStyle = `rgba(255, ${200 - explosionFrame*6}, 0, 0.8)`;
+        ctx.beginPath();
+        ctx.arc(bird.x, bird.y, bird.r + explosionFrame * 2, 0, Math.PI*2);
+        ctx.fill();
+
+        if (explosionFrame > 15) exploding = false;
+        return;
+    }
+
+    /* BIRD */
+    bird.vy += gravity;
+    bird.y += bird.vy;
+
+    ctx.fillStyle = "yellow";
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, bird.r, 0, Math.PI*2);
+    ctx.fill();
+
+    /* PIPES */
+    for (let i = pipes.length - 1; i >= 0; i--) {
+        let p = pipes[i];
+        p.x -= pipeSpeed;
+
+        ctx.fillStyle = "green";
+        ctx.fillRect(p.x, 0, 40, p.top);
+        ctx.fillRect(p.x, p.top + pipeGap, 40, H);
+
+        /* COLLISION */
+        if (
+            bird.x + bird.r > p.x &&
+            bird.x - bird.r < p.x + 40 &&
+            (bird.y - bird.r < p.top ||
+             bird.y + bird.r > p.top + pipeGap)
+        ) {
+            triggerDeath();
+        }
+
+        if (p.x === bird.x) {
+            score++;
+            document.getElementById("score").textContent = "Score: " + score;
+        }
+
+        if (p.x < -50) pipes.splice(i, 1);
+    }
+
+    if (pipes.length === 0 || pipes[pipes.length-1].x < W - 180) {
+        spawnPipe();
+    }
+
+    /* WALLS */
+    if (bird.y + bird.r > H || bird.y - bird.r < 0) {
+        triggerDeath();
+    }
+}
+
+/* DEATH */
+function triggerDeath() {
+    if (!running) return;
+    running = false;
+    exploding = true;
+    saveScore();
+}
+
+/* LEADERBOARD */
+function saveScore() {
+    let name = document.getElementById("playerName").value.trim();
+    leaderboard.push({ name, score });
+    leaderboard.sort((a,b)=>b.score-a.score);
+    leaderboard = leaderboard.slice(0,3);
+    localStorage.setItem("flappyTop3", JSON.stringify(leaderboard));
+    renderLeaderboard();
+}
+
+function renderLeaderboard() {
+    let html = "<b>Top 3</b><br>";
+    leaderboard.forEach((p,i)=>{
+        html += `${i+1}. ${p.name} — ${p.score}<br>`;
+    });
+    document.getElementById("leaderboard").innerHTML = html;
+}
+
+renderLeaderboard();
+loop();
+</script>
+</body>
+</html>
